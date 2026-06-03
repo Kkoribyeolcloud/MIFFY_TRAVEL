@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>급하게 네덜란드-하면된다 with MOM</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet Map CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Noto Sans KR for Ultra High Readability -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #FDFBF7;
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: 18px;
+            color: #183684;
+            letter-spacing: -0.02em;
+            line-height: 1.6;
+        }
+        /* Custom Retro Outline & Shadow styling (image_f5f6b8.png style) */
+        .retro-window {
+            border: 3.5px solid #183684;
+            box-shadow: 5px 5px 0px 0px #183684;
+            border-radius: 12px;
+            background-color: #FFF;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+        .retro-btn {
+            border: 3px solid #183684;
+            box-shadow: 3px 3px 0px 0px #183684;
+            border-radius: 8px;
+            font-weight: 800;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .retro-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px 0px #183684;
+        }
+        /* Custom scrollbar to match retro look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FDFBF7;
+            border-left: 2px solid #183684;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #183684;
+            border: 1px solid #FDFBF7;
+            border-radius: 4px;
+        }
+        /* Ruled Journal Lines for Diaries */
+        .journal-paper {
+            background-image: linear-gradient(#f0e6d2 1px, transparent 1px);
+            background-size: 100% 28px;
+            line-height: 28px;
+        }
+    </style>
+</head>
+<body class="p-3 md:p-6">
+
+<div id="root"></div>
+
+<!-- Babel Script Compiler -->
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// Coordinates Database for Leaflet Route Drawing
+const DAY_COORDINATES = {
+    1: [
+        { name: "인천국제공항", coords: [37.4602, 126.4407] },
+        { name: "암스테르담 스키폴 공항", coords: [52.3105, 4.7683] },
+        { name: "호텔 피타 암스테르담", coords: [52.3592, 4.8642] }
+    ],
+    2: [
+        { name: "호텔 피타 암스테르담", coords: [52.3592, 4.8642] },
+        { name: "암스테르담 시립 미술관", coords: [52.357288, 4.879712] },
+        { name: "핀켈 43 (애플파이)", coords: [52.379685, 4.886367] },
+        { name: "요르단 지구", coords: [52.375806, 4.881667] },
+        { name: "카페 데 야렌", coords: [52.368735, 4.895318] }
+    ],
+    3: [
+        { name: "호텔 피타 암스테르담", coords: [52.3592, 4.8642] },
+        { name: "반 고흐 미술관", coords: [52.358417, 4.881076] },
+        { name: "암스테르담 중앙역", coords: [52.3791, 4.9003] },
+        { name: "로테르담 중앙역", coords: [51.9244, 4.4701] },
+        { name: "빌데르베르흐 파크호텔 로테르담", coords: [51.916174, 4.473523] }
+    ],
+    4: [
+        { name: "빌데르베르흐 파크호텔 로테르담", coords: [51.916174, 4.473523] },
+        { name: "로테르담 빈넨로터 플리마켓", coords: [51.921356, 4.486241] },
+        { name: "마르크탈", coords: [51.920159, 4.487192] },
+        { name: "큐브 하우스", coords: [51.920406, 4.489098] },
+        { name: "하베스트 커피 브루어스", coords: [51.916812, 4.483915] },
+        { name: "손네펠트 하우스", coords: [51.914948, 4.472251] },
+        { name: "바이 야무쉬", coords: [51.924238, 4.488344] }
+    ],
+    5: [
+        { name: "빌데르베르흐 파크호텔 로테르담", coords: [51.916174, 4.473523] },
+        { name: "마ורי츠하위스 미술관", coords: [52.080436, 4.314275] },
+        { name: "호텔 데생드 라운지", coords: [52.084126, 4.312918] },
+        { name: "더 패시지", coords: [52.078426, 4.309914] },
+        { name: "더 북스토어 카페", coords: [52.081827, 4.306915] },
+        { name: "두독 헤이그", coords: [52.079215, 4.313018] }
+    ],
+    6: [
+        { name: "빌데르베르흐 파크호텔 로테르담", coords: [51.916174, 4.473523] },
+        { name: "디포 보이만스 반 베닝건", coords: [51.914167, 4.473056] },
+        { name: "레스토랑 레닐더", coords: [51.914185, 4.473041] },
+        { name: "바리스타 카페 로테르담", coords: [51.918412, 4.476518] },
+        { name: "하일리허 본체스", coords: [51.917216, 4.472917] }
+    ],
+    7: [
+        { name: "빌데르베르흐 파크호텔 로테르담", coords: [51.916174, 4.473523] },
+        { name: "파크 플라자 빅토리아 암스테르담", coords: [52.377685, 4.898863] },
+        { name: "드 빈켈 반 나인체 (미피 숍)", coords: [52.375218, 4.884512] },
+        { name: "나인 스트리트", coords: [52.370512, 4.885813] },
+        { name: "싱겔 꽃시장", coords: [52.366817, 4.891316] }
+    ],
+    8: [
+        { name: "파크 플라자 빅토리아 암스테르담", coords: [52.377685, 4.898863] },
+        { name: "크뢸러 뮐러 미술관", coords: [52.095754, 5.818318] }
+    ],
+    9: [
+        { name: "파크 플라자 빅토리아 암스테르담", coords: [52.377685, 4.898863] },
+        { name: "암스테르담 스키폴 공항", coords: [52.3105, 4.7683] },
+        { name: "인천국제공항", coords: [37.4602, 126.4407] }
+    ]
+};
+
+// Travel Itinerary database with embedded links and warning tags
+const ITINERARIES = {
+    1: [
+        { time: "11:55", desc: "🛫 인천 국제공항 출발 (대한항공 KE925편)", link: null, isUrgent: false, coords: [37.4602, 126.4407] },
+        { time: "18:55", desc: "🛬 암스테르담 스키폴 국제공항 도착 및 입국 수속", link: "https://maps.google.com/?cid=12140416045434612952", isUrgent: false, coords: [52.3105, 4.7683] },
+        { time: "20:30", desc: "🏨 [호텔 피타 (Hotel Fita)] 체크인 및 시차 적응 휴식 🛌", link: "https://maps.google.com/?cid=940357791557300135", isUrgent: false, coords: [52.3592, 4.8642] }
+    ],
+    2: [
+        { time: "08:30", desc: "🍜 아침식사: 숙소에서 가볍게 컵라면으로 해결!", link: null, isUrgent: false },
+        { time: "10:00", desc: "🎨 [암스테르담 시립 미술관] 관람 (모던 아트의 정수)", link: "https://maps.google.com/?cid=17022650759856708586", isUrgent: false, coords: [52.357288, 4.879712] },
+        { time: "13:00", desc: "🥧 [핀켈 43 (Winkel 43)] 세계에서 가장 맛있는 네덜란드식 애플파이 디저트 타임 ☕", link: "https://maps.google.com/?cid=16418887331371252674", isUrgent: false, coords: [52.379685, 4.886367] },
+        { time: "15:00", desc: "🧱 [요르단 지구 (Jordaan)] 아기자기한 운하 감성 골목 투어", link: "https://maps.google.com/?cid=9268670307608425260", isUrgent: false, coords: [52.375806, 4.881667] },
+        { time: "18:00", desc: "🍽️ [카페 데 야렌 (Café de Jaren)] 아름다운 운하와 맞닿은 야외 테라스 식당에서 저녁 식사", link: "https://maps.google.com/?cid=4565271517019837050", isUrgent: false, coords: [52.368735, 4.895318] }
+    ],
+    3: [
+        { time: "08:00", desc: "🍜 아침식사: 숙소에서 가볍게 컵라면으로 해결!", link: null, isUrgent: false },
+        { time: "09:15", desc: "🏨 [호텔 피타] 체크아웃 후 리셉션에 캐리어 임시 보관", link: "https://maps.google.com/?cid=940357791557300135", isUrgent: false, coords: [52.3592, 4.8642] },
+        { time: "09:30", desc: "🌻 [반 고흐 미술관 (Van Gogh Museum)] 관람", link: "https://maps.google.com/?cid=13990476974401570074", isUrgent: true, coords: [52.358417, 4.881076] },
+        { time: "11:30", desc: "☕ 미술관 내부 카페에서 시그니처 '해바라기 케이크'와 커피 🍰", link: "https://maps.google.com/?cid=4293157056159815111", isUrgent: false, coords: [52.358417, 4.881076] },
+        { time: "13:30", desc: "💼 호텔로 돌아와 캐리어 수거 후 암스테르담 중앙역으로 이동 (우버 권장)", link: "https://maps.google.com/?cid=17105126899032724240", isUrgent: false, coords: [52.3791, 4.9003] },
+        { time: "14:30", desc: "🚆 암스테르담 중앙역 ➡️ 로테르담 중앙역 기차 이동 (쾌적한 1등석 추천)", link: null, isUrgent: false, coords: [51.9244, 4.4701] },
+        { time: "15:30", desc: "🏨 [빌데르베르흐 파크호텔 로테르담] 체크인 및 안락한 저녁식사 후 휴식 🛌", link: "https://maps.google.com/?cid=8058267843875438775", isUrgent: false, coords: [51.916174, 4.473523] }
+    ],
+    4: [
+        { time: "10:00", desc: "🛍️ [빈넨로터 플리마켓 (Market Binnenrotte)] 구경 (화요일 대형 야외 장터)", link: "https://maps.google.com/?cid=9579666826633089750", isUrgent: false, coords: [51.921356, 4.486241] },
+        { time: "12:00", desc: "🏛️ [마르크탈 (Markthal)] 웅장한 천장 벽화 감상 및 깔끔한 푸드코트 점심식사", link: "https://maps.google.com/?cid=14528939920908810179", isUrgent: false, coords: [51.920159, 4.487192] },
+        { time: "13:00", desc: "📐 [큐브 하우스 (Cube Houses)] 45도 기울어진 정육면체가 만드는 독특한 건축물 구경", link: "https://maps.google.com/?cid=6255698471319348670", isUrgent: false, coords: [51.920406, 4.489098] },
+        { time: "14:00", desc: "☕ [하베스트 커피 브루어스 (Harvest)] 운하 전망의 힙한 스페셜티 카페", link: "https://maps.google.com/?cid=4788553773809620876", isUrgent: false, coords: [51.916812, 4.483915] },
+        { time: "15:30", desc: "🏡 [손네펠트 하우스 (Sonneveld House)] 1930년대 기능주의 주택 명작 가옥 관람", link: "https://maps.google.com/?cid=13706546263497291152", isUrgent: true, coords: [51.914948, 4.472251] },
+        { time: "18:00", desc: "🍔 [바이 야무쉬 (by Jarmusch)] 레트로 다이너 감성의 힙스터 아지트 식당", link: "https://maps.google.com/?cid=11472369628628598275", isUrgent: false, coords: [51.924238, 4.488344] }
+    ],
+    5: [
+        { time: "09:30", desc: "🚆 로테르담 ➡️ 헤이그 중앙역 기차 이동 (약 25분 소요)", link: null, isUrgent: false },
+        { time: "10:30", desc: "🏛️ [마ורי츠하위스 미술관 (Mauritshuis)] '진주 귀걸이를 한 소녀' 감상", link: "https://maps.google.com/?cid=13367053466295182684", isUrgent: true, coords: [52.080436, 4.314275] },
+        { time: "12:30", desc: "🍽️ [호텔 데생드 라운지 (Hotel Des Indes)] 역사 깊은 럭셔리 궁전 라운지 식사", link: "https://maps.google.com/?cid=102462381431787328", isUrgent: false, coords: [52.084126, 4.312918] },
+        { time: "14:30", desc: "🛍️ [더 패시지 (The Passage)] 1885년에 지어진 화려한 유리 돔 천장의 역사적 쇼핑 아케이드", link: "https://maps.google.com/?cid=4726976049818323722", isUrgent: false, coords: [52.078426, 4.309914] },
+        { time: "15:30", desc: "📚 [더 북스토어 카페 (The Bookstor)] 100년 전통 서점 북카페 비밀 정원에서 티타임", link: "https://maps.google.com/?cid=5851356495707467577", isUrgent: false, coords: [52.081827, 4.306915] },
+        { time: "17:00", desc: "🥧 [두독 헤이그 (Dudok)] 네덜란드 최고 명성의 애플파이 디저트 타임!", link: "https://maps.google.com/?cid=3841321879794580311", isUrgent: false, coords: [52.079215, 4.313018] }
+    ],
+    6: [
+        { time: "10:30", desc: "🪞 [디포 보이만스 반 베닝건 (Depot)] 세계 최초 전면 개방형 수장고 투어", link: "https://maps.google.com/?cid=10142875296465878870", isUrgent: true, coords: [51.914167, 4.473056] },
+        { time: "12:30", desc: "🍽️ [레스토랑 레닐더 (Renilde)] 디포 6층 루프탑 전경을 바라보며 힙한 점심 식사", link: "https://maps.google.com/?cid=13205092846969651117", isUrgent: false, coords: [51.914185, 4.473041] },
+        { time: "15:00", desc: "☕ [바리스타 카페 (Barista Cafe)] Oude Binnenweg 골목의 안락한 가구 카페", link: "https://maps.google.com/?cid=15483696706974758725", isUrgent: false, coords: [51.918412, 4.476518] },
+        { time: "16:30", desc: "☕ [하일리허 본체스 (Heilige Boontjes)] 옛 경찰서를 개조한 웅장하고 독특한 커피숍", link: "https://maps.google.com/?cid=3619127594716115356", isUrgent: false, coords: [51.917216, 4.472917] }
+    ],
+    7: [
+        { time: "11:00", desc: "🚆 로테르담 숙소 체크아웃 후 암스테르담 복귀 기차 탑승", link: null, isUrgent: false },
+        { time: "12:00", desc: "🏨 [파크 플라자 빅토리아 암스테르담] 역 바로 맞은편 체크인 전 짐 임시 보관", link: "https://maps.google.com/?cid=17105126899032724240", isUrgent: false, coords: [52.377685, 4.898863] },
+        { time: "13:30", desc: "🐰 [드 빈켈 반 나인체 (de winkel van nijntje)] 암스테르담 미피 공식 메인 플래그십 스토어 쇼핑!", link: "https://maps.google.com/?cid=12140416045434612952", isUrgent: false, coords: [52.375218, 4.884512] },
+        { time: "15:30", desc: "🛍️ [나인 스트리트 (9 Straatjes)] 및 [싱겔 꽃시장] 운하 자유 힐링 산책", link: "https://maps.google.com/?cid=9268670307608425260", isUrgent: false, coords: [52.370512, 4.885813] }
+    ],
+    8: [
+        { time: "09:00", desc: "🚆 암스테르담 중앙역 ➡️ 에더-바게닝겐역(Ede-Wageningen) 기차 이동", link: null, isUrgent: false },
+        { time: "10:00", desc: "🚌 108번 버스 탑승 후 오터로(Otterlo) 환승, 106번 국립공원 버스로 교체", link: null, isUrgent: false },
+        { time: "11:00", desc: "🌳 [크뢸러 뮐러 미술관 (Kröller-Müller)] 숲속 피크닉 & 거장 조각 정원 산책", link: "https://maps.google.com/?cid=6853388099993608286", isUrgent: true, coords: [52.095754, 5.818318] },
+        { time: "16:30", desc: "🚆 암스테르담 중앙역 복귀 및 따뜻한 한식 저녁식사", link: null, isUrgent: false }
+    ],
+    9: [
+        { time: "11:00", desc: "🏨 [파크 플라자 빅토리아] 체크아웃 및 캐리어 임시 보관", link: "https://maps.google.com/?cid=17105126899032724240", isUrgent: false, coords: [52.377685, 4.898863] },
+        { time: "12:00", desc: "🛍️ 중앙역 주변 마지막 스트롭와플, 치즈 등 미처 못 산 기념품 쇼핑", link: null, isUrgent: false },
+        { time: "17:30", desc: "🚆 스키폴 공항으로 편안하게 기차 이동 (15분 소요)", link: null, isUrgent: false, coords: [52.3105, 4.7683] },
+        { time: "21:20", desc: "🛫 암스테르담 스키폴 국제공항 출발 (대한항공 KE926편)", link: null, isUrgent: false },
+        { time: "익일16:40", desc: "🛬 서울 인천 국제공항 안전 도착 및 여행 일지 완료 💖", link: null, isUrgent: false }
+    ]
+};
+
+function App() {
+    const [page, setPage] = useState("home"); // "home" or "diary"
+    const [currentDay, setCurrentDay] = useState(1);
+    const [fontSize, setFontSize] = useState(19);
+
+    const increaseFont = () => setFontSize(prev => Math.min(prev + 2, 28));
+    const decreaseFont = () => setFontSize(prev => Math.max(prev - 2, 14));
+
+    // Active timeline row index
+    const [activeRowIdx, setActiveRowIdx] = useState(null);
+
+    // Map instances
+    const mapRef = useRef(null);
+    const mapInstance = useRef(null);
+    const markersGroup = useRef(null);
+    const routeLine = useRef(null);
+
+    // Dynamic database hydration from localStorage
+    const [checklist, setChecklist] = useState(() => {
+        const saved = localStorage.getItem("miffy_checklist");
+        return saved ? JSON.parse(saved) : [
+            { id: 1, text: "🚨 반 고흐 미술관 사전 예매 완료", checked: true },
+            { id: 2, text: "🚨 마ורי츠하위스 미술관 예매 완료", checked: true },
+            { id: 3, text: "🚨 디포 보이만스 수장고 예매 완료", checked: true },
+            { id: 4, text: "🚨 손네펠트 하우스 타임슬롯 지정", checked: true },
+            { id: 5, text: "🚨 크뢸러 뮐러 + 국립공원 통합티켓", checked: true },
+            { id: 6, text: "여권 및 소지용 투명 파우치 챙기기", checked: false },
+            { id: 7, text: "기차 승차권 & 유레일 1등석 패스", checked: false },
+            { id: 8, text: "엄마 상비약 및 관절 영양제 💊", checked: false },
+            { id: 9, text: "비상용 편식 방지 컵라면 및 조미김", checked: false }
+        ];
+    });
+
+    const [budgetItems, setBudgetItems] = useState(() => {
+        const saved = localStorage.getItem("miffy_budget");
+        return saved ? JSON.parse(saved) : [];
+    });
+
+    const [diaries, setDiaries] = useState(() => {
+        const saved = localStorage.getItem("miffy_diaries");
+        return saved ? JSON.parse(saved) : {};
+    });
+
+    const [stickers, setStickers] = useState(() => {
+        const saved = localStorage.getItem("miffy_stickers");
+        return saved ? JSON.parse(saved) : [];
+    });
+
+    const [photos, setPhotos] = useState(() => {
+        const saved = localStorage.getItem("miffy_photos");
+        return saved ? JSON.parse(saved) : {};
+    });
+
+    // Budget States
+    const [expenseEuro, setExpenseEuro] = useState("");
+    const [expenseDesc, setExpenseDesc] = useState("");
+    const [expenseCategory, setExpenseCategory] = useState("식비");
+    const [budgetTab, setBudgetTab] = useState("today"); // "today" or "total"
+
+    // Custom Keypads (Strictly Password Protected)
+    const [momLocked, setMomLocked] = useState(true);
+    const [meLocked, setMeLocked] = useState(true);
+    const [momPasscode, setMomPasscode] = useState("");
+    const [mePasscode, setMePasscode] = useState("");
+    const [momShuffle, setMomShuffle] = useState([]);
+    const [meShuffle, setMeShuffle] = useState([]);
+
+    // Checklist Edit Mode States
+    const [editingId, setEditingId] = useState(null);
+    const [editingText, setEditingText] = useState("");
+
+    // Alerts
+    const [customAlert, setCustomAlert] = useState({ show: false, message: "" });
+    const triggerAlert = (msg) => {
+        setCustomAlert({ show: true, message: msg });
+    };
+
+    // Lightroom & Album States
+    const [lightbox, setLightbox] = useState({ show: false, imgUrl: "", day: null, index: null, caption: "" });
+    const [albumOpen, setAlbumOpen] = useState(false);
+
+    // Save triggers
+    useEffect(() => {
+        localStorage.setItem("miffy_checklist", JSON.stringify(checklist));
+    }, [checklist]);
+
+    useEffect(() => {
+        localStorage.setItem("miffy_budget", JSON.stringify(budgetItems));
+    }, [budgetItems]);
+
+    useEffect(() => {
+        localStorage.setItem("miffy_diaries", JSON.stringify(diaries));
+    }, [diaries]);
+
+    useEffect(() => {
+        localStorage.setItem("miffy_stickers", JSON.stringify(stickers));
+    }, [stickers]);
+
+    useEffect(() => {
+        localStorage.setItem("miffy_photos", JSON.stringify(photos));
+    }, [photos]);
+
+    const generateShuffle = () => {
+        const arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        return arr.sort(() => Math.random() - 0.5);
+    };
+
+    const handleMomKey = (num) => {
+        if (momPasscode.length < 4) {
+            const nextCode = momPasscode + num;
+            setMomPasscode(nextCode);
+            if (nextCode === "0000") {
+                setMomLocked(false);
+                triggerAlert("🔓 어머님의 기밀 일지 보관함이 활성화되었습니다!");
+            } else if (nextCode.length === 4) {
+                triggerAlert("❌ 비밀번호가 틀렸습니다!");
+                setMomPasscode("");
+                setMomShuffle(generateShuffle());
+            }
+        }
+    };
+
+    const handleMeKey = (num) => {
+        if (mePasscode.length < 4) {
+            const nextCode = mePasscode + num;
+            setMePasscode(nextCode);
+            if (nextCode === "0789") {
+                setMeLocked(false);
+                triggerAlert("🔓 나의 자유 일지 보관함이 활성화되었습니다!");
+            } else if (nextCode.length === 4) {
+                triggerAlert("❌ 비밀번호가 틀렸습니다!");
+                setMePasscode("");
+                setMeShuffle(generateShuffle());
+            }
+        }
+    };
+
+    useEffect(() => {
+        setMomShuffle(generateShuffle());
+        setMeShuffle(generateShuffle());
+        setMomPasscode("");
+        setMePasscode("");
+        setMomLocked(true);
+        setMeLocked(true);
+        setActiveRowIdx(null); // Reset active itinerary highlight on Day change
+    }, [currentDay]);
+
+    // Map Render Trigger
+    useEffect(() => {
+        if (page !== "diary") return;
+        
+        if (mapInstance.current) {
+            mapInstance.current.remove();
+            mapInstance.current = null;
+        }
+
+        const mapContainer = document.getElementById('map-container');
+        if (!mapContainer) return;
+
+        const currentRoute = DAY_COORDINATES[currentDay] || [];
+        const centerCoord = currentRoute.length > 0 ? currentRoute[0].coords : [52.3702, 4.8952];
+
+        mapInstance.current = L.map('map-container', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView(centerCoord, currentDay === 1 || currentDay === 9 ? 4 : 13);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+        }).addTo(mapInstance.current);
+
+        markersGroup.current = L.layerGroup().addTo(mapInstance.current);
+
+        const pathPoints = [];
+        currentRoute.forEach((spot, idx) => {
+            pathPoints.push(spot.coords);
+            const customIcon = L.divIcon({
+                html: `<div class="bg-[#183684] text-white border-2 border-white rounded-full w-7 h-7 flex items-center justify-center font-bold text-sm shadow-md">${idx + 1}</div>`,
+                className: 'custom-leaflet-marker',
+                iconSize: [28, 28]
+            });
+            L.marker(spot.coords, { icon: customIcon })
+                .bindPopup(`<strong class="text-[#183684]">${spot.name}</strong>`)
+                .addTo(markersGroup.current);
+        });
+
+        if (pathPoints.length > 1) {
+            routeLine.current = L.polyline(pathPoints, {
+                color: '#E51B23',
+                weight: 4,
+                dashArray: '8, 8',
+                lineCap: 'round'
+            }).addTo(mapInstance.current);
+
+            mapInstance.current.fitBounds(routeLine.current.getBounds(), { padding: [30, 30] });
+        }
+    }, [currentDay, page]);
+
+    // Timeline Row Interaction
+    const handleTimelineRowClick = (item, idx) => {
+        setActiveRowIdx(idx);
+        if (item.coords && mapInstance.current) {
+            mapInstance.current.flyTo(item.coords, 14, {
+                animate: true,
+                duration: 1.5
+            });
+        }
+    };
+
+    // Checklist Actions
+    const toggleChecklist = (id) => {
+        setChecklist(prev => prev.map(item => item.id === id ? { ...item, checked: !item.checked } : item));
+    };
+
+    const addChecklistItem = (e) => {
+        if (e.key === "Enter" && e.target.value.trim() !== "") {
+            const newItem = {
+                id: Date.now(),
+                text: e.target.value.trim(),
+                checked: false
+            };
+            setChecklist(prev => [...prev, newItem]);
+            e.target.value = "";
+        }
+    };
+
+    const startEditing = (id, text) => {
+        setEditingId(id);
+        setEditingText(text);
+    };
+
+    const saveEditing = (id) => {
+        if (editingText.trim() === "") return;
+        setChecklist(prev => prev.map(item => item.id === id ? { ...item, text: editingText.trim() } : item));
+        setEditingId(null);
+        setEditingText("");
+    };
+
+    const deleteChecklistItem = (id) => {
+        setChecklist(prev => prev.filter(item => item.id !== id));
+    };
+
+    // Expense budgeting actions
+    const addExpense = () => {
+        if (!expenseEuro || isNaN(expenseEuro)) {
+            triggerAlert("⚠️ 올바른 유로 지출 금액을 숫자로 입력해 주세요!");
+            return;
+        }
+        const item = {
+            id: Date.now(),
+            day: currentDay,
+            amount: parseFloat(expenseEuro),
+            desc: expenseDesc.trim() || `${expenseCategory} 지출`,
+            category: expenseCategory
+        };
+        setBudgetItems(prev => [...prev, item]);
+        setExpenseEuro("");
+        setExpenseDesc("");
+    };
+
+    const deleteExpense = (id) => {
+        setBudgetItems(prev => prev.filter(item => item.id !== id));
+    };
+
+    // Sticker Spawning Actions
+    const spawnSticker = (type) => {
+        let text = "✨";
+        if (type === 'heart') text = "💖 JMT";
+        if (type === 'cloud') text = "☁️ NICE";
+        if (type === 'clover') text = "🍀 GOOD";
+        if (type === 'tape') text = "🎗️ MEMO";
+
+        const newSticker = {
+            id: Date.now(),
+            day: currentDay,
+            type,
+            text,
+            x: 10 + Math.random() * 50,
+            y: 10 + Math.random() * 50,
+            rotate: -15 + Math.random() * 30
+        };
+        setStickers(prev => [...prev, newSticker]);
+    };
+
+    const [activeDragId, setActiveDragId] = useState(null);
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+    const handleDragStart = (e, id) => {
+        e.stopPropagation();
+        setActiveDragId(id);
+        const rect = e.currentTarget.parentElement.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        setDragOffset({
+            x: ((clientX - rect.left) / rect.width) * 100,
+            y: ((clientY - rect.top) / rect.height) * 100
+        });
+    };
+
+    const handleDragMove = (e) => {
+        if (!activeDragId) return;
+        const canvas = document.getElementById("diary-canvas");
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        const posX = ((clientX - rect.left) / rect.width) * 100;
+        const posY = ((clientY - rect.top) / rect.height) * 100;
+
+        setStickers(prev => prev.map(st => st.id === activeDragId ? {
+            ...st,
+            x: Math.max(0, Math.min(90, posX)),
+            y: Math.max(0, Math.min(95, posY))
+        } : st));
+    };
+
+    const handleDragEnd = () => {
+        setActiveDragId(null);
+    };
+
+    const deleteSticker = (id) => {
+        setStickers(prev => prev.filter(st => st.id !== id));
+    };
+
+    // Images uploading & client-side high quality scaling
+    const handlePhotoUpload = (e) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        const dayPhotos = photos[currentDay] || [];
+        if (dayPhotos.length + files.length > 6) {
+            triggerAlert("⚠️ 하루에 최대 6장의 사진까지만 보관할 수 있습니다!");
+            return;
+        }
+
+        Array.from(files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    let width = img.width;
+                    let height = img.height;
+                    const max_size = 800;
+
+                    if (width > height) {
+                        if (width > max_size) {
+                            height *= max_size / width;
+                            width = max_size;
+                        }
+                    } else {
+                        if (height > max_size) {
+                            width *= max_size / height;
+                            height = max_size;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.65);
+
+                    setPhotos(prev => {
+                        const updatedDayList = [...(prev[currentDay] || []), {
+                            id: Date.now() + Math.random(),
+                            url: compressedDataUrl,
+                            caption: "행복한 순간의 모녀기록 ✨"
+                        }];
+                        return { ...prev, [currentDay]: updatedDayList };
+                    });
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const removePhoto = (day, idx) => {
+        setPhotos(prev => {
+            const list = [...(prev[day] || [])];
+            list.splice(idx, 1);
+            return { ...prev, [day]: list };
+        });
+        setLightbox({ show: false, imgUrl: "", day: null, index: null, caption: "" });
+    };
+
+    const updatePhotoCaption = (day, idx, text) => {
+        setPhotos(prev => {
+            const list = [...(prev[day] || [])];
+            list[idx] = { ...list[idx], caption: text };
+            return { ...prev, [day]: list };
+        });
+    };
+
+    const handleDownloadPhoto = (dataUrl, fileName) => {
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleDiaryChange = (role, text) => {
+        setDiaries(prev => {
+            const dayData = prev[currentDay] || {};
+            return {
+                ...prev,
+                [currentDay]: {
+                    ...dayData,
+                    [role]: text
+                }
+            };
+        });
+    };
+
+    const currentDayPhotos = photos[currentDay] || [];
+
+    // Financial calculations
+    const todayExpenses = budgetItems.filter(item => item.day === currentDay);
+    const todayCategoryTotals = todayExpenses.reduce((acc, curr) => {
+        acc[curr.category] = (acc[curr.category] || 0) + curr.amount;
+        return acc;
+    }, {});
+
+    const totalCategoryTotals = budgetItems.reduce((acc, curr) => {
+        acc[curr.category] = (acc[curr.category] || 0) + curr.amount;
+        return acc;
+    }, {});
+
+    const overallTotalEuro = budgetItems.reduce((acc, curr) => acc + curr.amount, 0);
+
+    return (
+        <div className="max-w-[1300px] mx-auto" style={{ fontSize: `${fontSize}px` }}>
+            {/* Custom Miffy Alert Box */}
+            {customAlert.show && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+                    <div className="bg-white border-[4px] border-[#183684] rounded-2xl max-w-sm w-full shadow-[6px_6px_0px_rgba(24,54,132,1)] p-6 text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-[#FFD100] border-2 border-[#183684] rounded-full flex items-center justify-center font-bold text-2xl">🐰</div>
+                        <p className="text-xl font-bold mb-6 text-[#183684] whitespace-pre-line">{customAlert.message}</p>
+                        <button
+                            onClick={() => setCustomAlert({ show: false, message: "" })}
+                            className="bg-[#E51B23] text-white px-6 py-2 rounded-lg font-bold border-2 border-[#183684] shadow-[3px_3px_0px_rgba(24,54,132,1)] active:translate-y-0.5 active:shadow-[1px_1px_0px_rgba(24,54,132,1)]"
+                        >
+                            확인했다! ➡️
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* LANDING PAGE (Miffy Yellow Book Cover) */}
+            {page === "home" && (
+                <div className="min-h-screen bg-[#FFD100] border-[6px] border-[#183684] rounded-[24px] flex flex-col items-center justify-center p-6 text-center shadow-[10px_10px_0px_0px_rgba(24,54,132,1)]">
+                    <div className="flex gap-2 mb-10">
+                        <span className="w-6 h-6 rounded-full bg-[#E51B23] border-2 border-[#183684]"></span>
+                        <span className="w-6 h-6 rounded-full bg-[#009E49] border-2 border-[#183684]"></span>
+                        <span className="w-6 h-6 rounded-full bg-white border-2 border-[#183684]"></span>
+                    </div>
+
+                    <h1 className="text-6xl md:text-8xl font-black text-[#183684] tracking-wider uppercase mb-1 drop-shadow-md select-none">
+                        GOGO TRAVEL
+                    </h1>
+                    <p className="text-3xl md:text-4xl font-bold text-[#183684] italic tracking-wide mb-8">
+                        ep.Netherlands
+                    </p>
+
+                    <div className="w-[180px] h-[240px] bg-white border-[4px] border-[#183684] rounded-[24px] shadow-[6px_6px_0px_rgba(24,54,132,1)] p-4 flex items-center justify-center mb-8">
+                        <svg viewBox="0 0 100 120" className="w-full h-full">
+                            <path d="M 35 15 C 30 15, 30 40, 35 45 C 40 40, 40 15, 35 15 Z" fill="#FFF" stroke="#183684" strokeWidth="3" />
+                            <path d="M 47 15 C 42 15, 42 40, 47 45 C 52 40, 52 15, 47 15 Z" fill="#FFF" stroke="#183684" strokeWidth="3" />
+                            <ellipse cx="41" cy="55" rx="17" ry="14" fill="#FFF" stroke="#183684" strokeWidth="3" />
+                            <circle cx="34" cy="54" r="2" fill="#183684" />
+                            <circle cx="48" cy="54" r="2" fill="#183684" />
+                            <path d="M 39 60 L 43 64 M 43 60 L 39 64" stroke="#183684" strokeWidth="2.5" strokeLinecap="round" />
+                            <path d="M 25 95 L 30 70 L 52 70 L 57 95 Z" fill="#E51B23" stroke="#183684" strokeWidth="3" />
+                            <circle cx="27" cy="78" r="4" fill="#FFF" stroke="#183684" strokeWidth="2.5" />
+                            <circle cx="55" cy="78" r="4" fill="#FFF" stroke="#183684" strokeWidth="2.5" />
+                        </svg>
+                    </div>
+
+                    <button
+                        onClick={() => setPage("diary")}
+                        className="bg-[#E51B23] text-white px-10 py-5 rounded-2xl text-2xl font-black border-[4px] border-[#183684] shadow-[6px_6px_0px_rgba(24,54,132,1)] hover:bg-[#c2141c] active:translate-y-1 active:shadow-[2px_2px_0px_rgba(24,54,132,1)]"
+                    >
+                        START DIARY ➡️
+                    </button>
+                </div>
+            )}
+
+            {/* TRAVEL DIARY DASHBOARD (20:80 GRID) */}
+            {page === "diary" && (
+                <div onMouseMove={handleDragMove} onTouchMove={handleDragMove} onMouseUp={handleDragEnd} onTouchEnd={handleDragEnd}>
+                    {/* App Header Bar */}
+                    <div className="retro-window p-4 mb-6 flex flex-col md:flex-row justify-between items-center gap-4 bg-[#F26D21]/10">
+                        <div className="flex items-center gap-3">
+                            <span className="text-3xl">🇳🇱</span>
+                            <span className="font-black text-2xl md:text-3xl tracking-wide">급하게 네덜란드-하면된다 with MOM 🌸</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button onClick={decreaseFont} className="retro-btn px-3 py-1 bg-white text-base">A-</button>
+                            <span className="font-bold text-sm bg-[#183684] text-white px-2 py-1 rounded">글씨크기: {fontSize}px</span>
+                            <button onClick={increaseFont} className="retro-btn px-3 py-1 bg-white text-base">A+</button>
+                            <button onClick={() => setPage("home")} className="retro-btn ml-4 px-4 py-1.5 bg-[#E51B23] text-white font-bold text-sm">홈으로 🏠</button>
+                        </div>
+                    </div>
+
+                    {/* DAY SELECTOR - DOCUMENT BINDER TABS */}
+                    <div className="flex flex-wrap gap-1 mb-1">
+                        {Array.from({ length: 9 }).map((_, i) => {
+                            const dayNum = i + 1;
+                            const isActive = currentDay === dayNum;
+                            return (
+                                <button
+                                    key={dayNum}
+                                    onClick={() => setCurrentDay(dayNum)}
+                                    className={`px-4 py-2 text-lg font-black transition-all ${
+                                        isActive 
+                                            ? "bg-[#FFF] border-t-[4px] border-x-[4px] border-[#183684] rounded-t-xl z-10 translate-y-[3px] text-[#E51B23]" 
+                                            : "bg-[#FDFBF7] border-[3px] border-[#183684] rounded-t-lg text-[#183684] hover:bg-white opacity-85"
+                                    }`}
+                                    style={{ borderBottom: isActive ? "none" : "3px solid #183684" }}
+                                >
+                                    📂 Day 0{dayNum}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* TWO SECTION SPLIT: SIDEBAR(20%) VS CONTENT(80%) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                        
+                        {/* LEFT SIDEBAR (20% Span) */}
+                        <div className="lg:col-span-1 space-y-6">
+                            
+                            {/* 1. CHECKLIST (At the top, 20% longer) */}
+                            <div className="retro-window">
+                                <div className="bg-[#009E49] text-white p-2 font-black flex items-center justify-between border-b-[3.5px] border-[#183684]">
+                                    <span>TASK_CHECKLIST.EXE</span>
+                                    <div className="flex gap-1">
+                                        <span className="w-3 h-3 rounded-full bg-[#E51B23] border border-[#183684]"></span>
+                                        <span className="w-3 h-3 rounded-full bg-[#FFD100] border border-[#183684]"></span>
+                                    </div>
+                                </div>
+                                <div className="p-3">
+                                    <h4 className="font-black text-sm text-[#183684] mb-2">필수 예약 마스터체크 📌</h4>
+                                    <div className="max-h-[220px] overflow-y-auto space-y-2 pr-1">
+                                        {checklist.map(item => (
+                                            <div key={item.id} className="flex items-start justify-between gap-1 bg-[#FDFBF7] p-1.5 rounded border border-[#183684]/30">
+                                                {editingId === item.id ? (
+                                                    <div className="flex-1 flex gap-1">
+                                                        <input
+                                                            type="text"
+                                                            value={editingText}
+                                                            onChange={(e) => setEditingText(e.target.value)}
+                                                            className="flex-1 text-xs border border-[#183684] p-0.5 rounded outline-none"
+                                                        />
+                                                        <button onClick={() => saveEditing(item.id)} className="text-xs bg-[#009E49] text-white px-1.5 py-0.5 rounded font-bold">✔️</button>
+                                                    </div>
+                                                ) : (
+                                                    <label className="flex-1 flex items-start gap-2 cursor-pointer text-xs">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={item.checked}
+                                                            onChange={() => toggleChecklist(item.id)}
+                                                            className="mt-0.5 accent-[#009E49] w-3.5 h-3.5 border-2 border-[#183684]"
+                                                        />
+                                                        <span className={`${item.checked ? "line-through text-gray-400" : "font-bold text-[#183684]"}`}>
+                                                            {item.text}
+                                                        </span>
+                                                    </label>
+                                                )}
+                                                <div className="flex gap-1 ml-1 self-center">
+                                                    <button onClick={() => startEditing(item.id, item.text)} className="text-[10px] bg-amber-100 hover:bg-amber-200 border border-[#183684]/30 px-1 py-0.5 rounded text-[#183684]">✏️</button>
+                                                    <button onClick={() => deleteChecklistItem(item.id)} className="text-[10px] bg-red-100 hover:bg-red-200 border border-[#183684]/30 px-1 py-0.5 rounded text-[#E51B23]">❌</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="➕ 추가할 예약/준비물 입력 후 Enter"
+                                        onKeyDown={addChecklistItem}
+                                        className="mt-3 w-full border-2 border-[#183684] rounded p-1 text-xs outline-none focus:bg-[#FFD100]/10"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* 2. DAKK STAMP PALETTE */}
+                            <div className="retro-window">
+                                <div className="bg-[#E51B23] text-white p-2 font-black flex items-center justify-between border-b-[3.5px] border-[#183684]">
+                                    <span>STAMP_MAKER.SYS</span>
+                                    <span className="text-xs">v1.2</span>
+                                </div>
+                                <div className="p-3 text-center">
+                                    <h4 className="font-bold text-sm text-[#183684] mb-2">다꾸 감성 스탬프 찍기 ✨</h4>
+                                    <p className="text-[11px] text-gray-500 mb-3">누르면 일기장 종이에 스티커가 나타납니다. 원하는 자리로 끌어서 옮기세요!</p>
+                                    <div className="grid grid-cols-2 gap-1.5">
+                                        <button onClick={() => spawnSticker('heart')} className="retro-btn p-1 bg-[#FFF0F2] hover:bg-[#ffd9df] text-xs font-bold flex flex-col items-center">
+                                            <span>💖</span> <span className="text-[10px]">JMT 하트</span>
+                                        </button>
+                                        <button onClick={() => spawnSticker('cloud')} className="retro-btn p-1 bg-[#EBF5FF] hover:bg-[#d0e7ff] text-xs font-bold flex flex-col items-center">
+                                            <span>☁️</span> <span className="text-[10px]">NICE 구름</span>
+                                        </button>
+                                        <button onClick={() => spawnSticker('clover')} className="retro-btn p-1 bg-[#E8F8F0] hover:bg-[#c9f2dd] text-xs font-bold flex flex-col items-center">
+                                            <span>🍀</span> <span className="text-[10px]">GOOD 클로버</span>
+                                        </button>
+                                        <button onClick={() => spawnSticker('tape')} className="retro-btn p-1 bg-[#FFF9E6] hover:bg-[#fff0c2] text-xs font-bold flex flex-col items-center">
+                                            <span>🎗️</span> <span className="text-[10px]">MEMO 테이프</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. MIFFY BUDGET CALCULATOR */}
+                            <div className="retro-window">
+                                <div className="bg-[#183684] text-white p-2 font-black flex items-center justify-between border-b-[3.5px] border-[#183684]">
+                                    <span>MIFFY_BUDGET.EXE</span>
+                                    <span className="text-lg">💶</span>
+                                </div>
+                                <div className="p-3">
+                                    <div className="flex border-b-2 border-[#183684] mb-2">
+                                        <button
+                                            onClick={() => setBudgetTab("today")}
+                                            className={`flex-1 text-center py-1 font-bold text-xs ${budgetTab === "today" ? "bg-[#183684] text-white" : "bg-white text-[#183684]"}`}
+                                        >
+                                            오늘 지출
+                                        </button>
+                                        <button
+                                            onClick={() => setBudgetTab("total")}
+                                            className={`flex-1 text-center py-1 font-bold text-xs ${budgetTab === "total" ? "bg-[#183684] text-white" : "bg-white text-[#183684]"}`}
+                                        >
+                                            전체 누적
+                                        </button>
+                                    </div>
+
+                                    {budgetTab === "today" ? (
+                                        <div>
+                                            <h4 className="font-bold text-xs text-[#183684] mb-1">오늘 쓴 경비 기록</h4>
+                                            <div className="space-y-1 mb-2 max-h-[120px] overflow-y-auto">
+                                                {todayExpenses.length === 0 ? (
+                                                    <p className="text-xs text-gray-400">지출 내역이 없어요.</p>
+                                                ) : (
+                                                    todayExpenses.map(item => (
+                                                        <div key={item.id} className="flex justify-between items-center text-[11px] bg-gray-50 border border-gray-200 p-1 rounded">
+                                                            <span className="truncate max-w-[80px]">{item.desc}</span>
+                                                            <span className="font-bold">€{item.amount}</span>
+                                                            <button onClick={() => deleteExpense(item.id)} className="text-[#E51B23] font-bold">X</button>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+
+                                            <div className="border-t border-gray-200 pt-2 mb-2">
+                                                <h5 className="font-bold text-[11px] text-[#183684]">카테고리별 합계</h5>
+                                                {Object.entries(todayCategoryTotals).map(([cat, val]) => (
+                                                    <div key={cat} className="flex justify-between text-[11px] font-bold text-gray-700">
+                                                        <span>{cat}</span>
+                                                        <span>€{val} (₩{(val * 1500).toLocaleString()})</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <h4 className="font-bold text-xs text-[#183684] mb-1">여행 총 지출 누적</h4>
+                                            <p className="text-base font-black text-[#E51B23]">
+                                                €{overallTotalEuro} (₩{(overallTotalEuro * 1500).toLocaleString()})
+                                            </p>
+                                            <div className="space-y-1 mt-2 max-h-[120px] overflow-y-auto">
+                                                {Object.entries(totalCategoryTotals).map(([cat, val]) => (
+                                                    <div key={cat} className="text-[11px] font-bold text-gray-700 bg-amber-50 p-1 border border-[#183684]/20 rounded">
+                                                        <div className="flex justify-between">
+                                                            <span>{cat}</span>
+                                                            <span>€{val} ({Math.round((val / (overallTotalEuro || 1)) * 100)}%)</span>
+                                                        </div>
+                                                        <div className="w-full bg-gray-200 h-1.5 rounded-full mt-1 overflow-hidden">
+                                                            <div className="bg-[#FFD100] h-full" style={{ width: `${(val / (overallTotalEuro || 1)) * 100}%` }}></div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="border-t-2 border-dashed border-[#183684] pt-2 mt-2 space-y-1">
+                                        <div className="flex gap-1">
+                                            <input
+                                                type="number"
+                                                placeholder="유로 €"
+                                                value={expenseEuro}
+                                                onChange={(e) => setExpenseEuro(e.target.value)}
+                                                className="w-1/2 border-2 border-[#183684] rounded p-1 text-xs outline-none"
+                                            />
+                                            <select
+                                                value={expenseCategory}
+                                                onChange={(e) => setExpenseCategory(e.target.value)}
+                                                className="w-1/2 border-2 border-[#183684] rounded p-1 text-xs outline-none bg-white font-bold"
+                                            >
+                                                <option>식비</option>
+                                                <option>교통비</option>
+                                                <option>관광</option>
+                                                <option>쇼핑</option>
+                                                <option>기타</option>
+                                            </select>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder="지출 설명"
+                                            value={expenseDesc}
+                                            onChange={(e) => setExpenseDesc(e.target.value)}
+                                            className="w-full border-2 border-[#183684] rounded p-1 text-xs outline-none"
+                                        />
+                                        <button onClick={addExpense} className="w-full retro-btn p-1 bg-[#FFD100] text-xs font-black">
+                                            지출 등록하기 💰
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        {/* RIGHT MAIN AREA (80% Span) */}
+                        <div className="lg:col-span-4 space-y-6">
+                            
+                            {/* MAP CONTROLLER */}
+                            <div className="retro-window">
+                                <div className="bg-[#183684] text-white p-2 font-black flex items-center justify-between border-b-[3.5px] border-[#183684]">
+                                    <span>DAK_MAPS.EXE - Day 0{currentDay} 동선 및 노선도</span>
+                                    <span className="text-xs">실시간 구글 지도 연동</span>
+                                </div>
+                                <div className="p-3">
+                                    <div id="map-container" className="w-full h-[250px] rounded-lg border-2 border-[#183684] relative z-0"></div>
+                                    <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold text-[#183684]">
+                                        <span className="bg-[#E51B23]/10 px-2 py-1 rounded">방문 동선:</span>
+                                        {(DAY_COORDINATES[currentDay] || []).map((spot, idx) => (
+                                            <span key={idx} className="bg-gray-100 px-2 py-1 rounded border border-gray-300">
+                                                {idx + 1}. {spot.name}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* DAILY TIMELINE ITINERARY */}
+                            <div className="retro-window">
+                                <div className="bg-[#FFD100] text-[#183684] p-3 font-black flex items-center justify-between border-b-[3.5px] border-[#183684]">
+                                    <span className="text-xl">📋 Day 0{currentDay} 상세 여행 계획표</span>
+                                    <span className="text-xs">원하는 행을 누르면 지도가 부드럽게 추적합니다! 🎯</span>
+                                </div>
+                                <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
+                                    {(ITINERARIES[currentDay] || []).map((item, idx) => (
+                                        <div 
+                                            key={idx} 
+                                            onClick={() => handleTimelineRowClick(item, idx)}
+                                            className={`flex gap-3 items-center p-3 rounded-lg border-2 border-[#183684] cursor-pointer transition-all ${
+                                                activeRowIdx === idx 
+                                                    ? "bg-[#FFD100]/25 shadow-[4px_4px_0px_rgba(24,54,132,1)] translate-y-[-2px]" 
+                                                    : "bg-[#F7F4EB] hover:bg-white shadow-[2px_2px_0px_rgba(24,54,132,1)]"
+                                            }`}
+                                        >
+                                            <div className="bg-[#183684] text-white font-bold text-xs px-2 py-1 rounded-full text-center min-w-[70px]">
+                                                {item.time}
+                                            </div>
+                                            <div className="flex-1 flex justify-between items-center gap-2">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-bold text-sm text-[#183684] leading-relaxed">{item.desc}</p>
+                                                    {item.isUrgent && (
+                                                        <span className="bg-[#E51B23] text-white text-[10px] px-1.5 py-0.5 rounded-full font-black animate-pulse">
+                                                            🚨 사전 예약 필수
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {item.link && (
+                                                    <a 
+                                                        href={item.link} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        onClick={(e) => e.stopPropagation()} 
+                                                        className="retro-btn bg-[#FFD100] hover:bg-[#FFE100] text-[#183684] px-2 py-1 text-xs font-black flex items-center gap-1 shrink-0"
+                                                    >
+                                                        🧭 길찾기
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* PICTURE DIARY SCRAPBOOK CANVAS */}
+                            <div id="diary-canvas" className="retro-window relative overflow-hidden bg-[#FDFBF7] p-6 border-[3.5px] border-[#183684]">
+                                {/* Spawning Stickers Render Area */}
+                                {stickers.filter(st => st.day === currentDay).map(st => (
+                                    <div
+                                        key={st.id}
+                                        onMouseDown={(e) => handleDragStart(e, st.id)}
+                                        onTouchStart={(e) => handleDragStart(e, st.id)}
+                                        className="absolute cursor-move select-none z-[40] font-black border-2 border-[#183684] px-2 py-1 rounded shadow-md flex items-center gap-1.5 bg-white text-sm"
+                                        style={{
+                                            left: `${st.x}%`,
+                                            top: `${st.y}%`,
+                                            transform: `rotate(${st.rotate}deg)`,
+                                        }}
+                                    >
+                                        <span>{st.text}</span>
+                                        <button
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            onTouchStart={(e) => e.stopPropagation()}
+                                            onClick={() => deleteSticker(st.id)}
+                                            className="text-[#E51B23] hover:text-red-700 ml-1 font-bold text-xs"
+                                        >
+                                            X
+                                        </button>
+                                    </div>
+                                ))}
+
+                                {/* Date Bubbles */}
+                                <div className="flex flex-wrap gap-2 items-center mb-6">
+                                    <span className="bg-[#FFF] border-2 border-[#183684] px-4 py-1.5 rounded-full font-black text-[#183684] shadow-sm">
+                                        2026년
+                                    </span>
+                                    <span className="bg-[#FFF] border-2 border-[#183684] px-4 py-1.5 rounded-full font-black text-[#183684] shadow-sm">
+                                        6월 {5 + currentDay}일 (Day 0{currentDay})
+                                    </span>
+                                    <span className="bg-[#FFD100] border-2 border-[#183684] px-4 py-1.5 rounded-full font-black text-[#183684] shadow-sm flex-1 text-center min-w-[200px]">
+                                        네덜란드에서 그리는 엄마와의 그림일기 📒
+                                    </span>
+                                </div>
+
+                                {/* Main Paper Section */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                                    
+                                    {/* Polaroid Album Frame Area */}
+                                    <div className="bg-white border-2 border-[#183684] p-4 rounded-xl shadow-md text-center relative">
+                                        <div className="absolute top-2 left-1/2 -translate-x-1/2 -translate-y-5 bg-[#F26D21] border-2 border-[#183684] px-4 py-0.5 text-xs text-white font-bold rotate-[-2deg] shadow-sm">
+                                            MY_PHOTOS.SYS
+                                        </div>
+
+                                        <div className="mb-4">
+                                            {currentDayPhotos.length === 0 ? (
+                                                <div className="border-4 border-dashed border-gray-300 rounded-lg p-10 flex flex-col items-center justify-center bg-gray-50">
+                                                    <span className="text-4xl mb-2">📸</span>
+                                                    <p className="text-sm font-bold text-gray-500">오늘 찍은 사진/동영상을 넣어보세요!</p>
+                                                    <p className="text-xs text-gray-400 mt-1">(최대 6장까지 보관 가능)</p>
+                                                </div>
+                                            ) : currentDayPhotos.length === 1 ? (
+                                                <div
+                                                    onClick={() => setLightbox({ show: true, imgUrl: currentDayPhotos[0].url, day: currentDay, index: 0, caption: currentDayPhotos[0].caption })}
+                                                    className="cursor-pointer border-2 border-[#183684] bg-[#FFF] p-3 pb-8 shadow-lg hover:rotate-1 transition-transform relative"
+                                                >
+                                                    <img src={currentDayPhotos[0].url} className="w-full h-[280px] object-cover rounded border border-[#183684]/20" />
+                                                    <p className="font-bold text-[#183684] mt-4 italic font-sans text-sm">
+                                                        {currentDayPhotos[0].caption}
+                                                    </p>
+                                                    <div className="absolute top-1 right-1 bg-white border border-[#183684] rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold text-[#E51B23]">
+                                                        1
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    {currentDayPhotos.map((photo, index) => (
+                                                        <div
+                                                            key={photo.id}
+                                                            onClick={() => setLightbox({ show: true, imgUrl: photo.url, day: currentDay, index: index, caption: photo.caption })}
+                                                            className="cursor-pointer border-2 border-[#183684] bg-[#FFF] p-1.5 pb-4 shadow-md hover:scale-[1.02] transition-transform relative"
+                                                        >
+                                                            <img src={photo.url} className="w-full h-[110px] object-cover rounded border border-[#183684]/10" />
+                                                            <p className="text-xs font-bold text-gray-500 truncate mt-2 font-sans">{photo.caption}</p>
+                                                            <div className="absolute top-1 right-1 bg-white border border-[#183684] rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold text-[#E51B23]">
+                                                                {index + 1}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-wrap justify-center gap-2">
+                                            <label className="retro-btn bg-[#FFD100] text-[#183684] px-4 py-2 text-sm font-black cursor-pointer inline-block">
+                                                ➕ 사진 추가하기
+                                                <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+                                            </label>
+                                            <button
+                                                onClick={() => setAlbumOpen(true)}
+                                                className="retro-btn bg-[#009E49] text-white px-4 py-2 text-sm font-black"
+                                            >
+                                                📖 전체 사진첩 보기
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Personal Locked Diary Sections */}
+                                    <div className="space-y-4">
+                                        
+                                        {/* A. Mom's Secret Diary (🔑 0000) */}
+                                        <div className="retro-window p-3 bg-[#FFF9E6]">
+                                            <div className="flex justify-between items-center border-b-2 border-[#183684]/30 pb-2 mb-2">
+                                                <span className="font-black text-[#183684] flex items-center gap-1">👩 엄마의 여행 일지</span>
+                                                {momLocked ? (
+                                                    <span className="text-xs bg-[#E51B23] text-white px-2 py-0.5 rounded font-bold">🔒 잠김</span>
+                                                ) : (
+                                                    <button onClick={() => setMomLocked(true)} className="text-xs bg-[#009E49] text-white px-2 py-0.5 rounded font-bold">🔓 잠그기</button>
+                                                )}
+                                            </div>
+
+                                            {momLocked ? (
+                                                <div className="text-center py-2">
+                                                    <p className="text-xs text-gray-500 mb-2">엄마만 아는 네 자리 비밀번호를 입력해 주세요.</p>
+                                                    <div className="flex justify-center gap-1.5 mb-2">
+                                                        {Array.from({ length: 4 }).map((_, idx) => (
+                                                            <span key={idx} className="w-3 h-3 rounded-full border-2 border-[#183684] bg-white">
+                                                                {momPasscode.length > idx && "•"}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                    <div className="grid grid-cols-5 gap-1 max-w-[180px] mx-auto">
+                                                        {momShuffle.map(num => (
+                                                            <button
+                                                                key={num}
+                                                                onClick={() => handleMomKey(num)}
+                                                                className="retro-btn bg-white py-1 text-xs font-bold"
+                                                            >
+                                                                {num}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <textarea
+                                                    value={(diaries[currentDay] || {}).mom || ""}
+                                                    onChange={(e) => handleDiaryChange("mom", e.target.value)}
+                                                    placeholder="어머님만의 소중한 하루 일기를 기록해 주세요... ✍️"
+                                                    className="w-full h-[150px] p-2 bg-transparent text-[#183684] font-bold border-2 border-dashed border-[#183684] rounded outline-none journal-paper resize-none"
+                                                />
+                                            )}
+                                        </div>
+
+                                        {/* B. My Secret Diary (🔑 0789) */}
+                                        <div className="retro-window p-3 bg-[#E8F8F0]">
+                                            <div className="flex justify-between items-center border-b-2 border-[#183684]/30 pb-2 mb-2">
+                                                <span className="font-black text-[#183684] flex items-center gap-1">✍️ 나의 여행 일지</span>
+                                                {meLocked ? (
+                                                    <span className="text-xs bg-[#E51B23] text-white px-2 py-0.5 rounded font-bold">🔒 잠김</span>
+                                                ) : (
+                                                    <button onClick={() => setMeLocked(true)} className="text-xs bg-[#009E49] text-white px-2 py-0.5 rounded font-bold">🔓 잠그기</button>
+                                                )}
+                                            </div>
+
+                                            {meLocked ? (
+                                                <div className="text-center py-2">
+                                                    <p className="text-xs text-gray-500 mb-2">나만 아는 비밀번호를 입력해 주세요.</p>
+                                                    <div className="flex justify-center gap-1.5 mb-2">
+                                                        {Array.from({ length: 4 }).map((_, idx) => (
+                                                            <span key={idx} className="w-3 h-3 rounded-full border-2 border-[#183684] bg-white">
+                                                                {mePasscode.length > idx && "•"}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                    <div className="grid grid-cols-5 gap-1 max-w-[180px] mx-auto">
+                                                        {meShuffle.map(num => (
+                                                            <button
+                                                                key={num}
+                                                                onClick={() => handleMeKey(num)}
+                                                                className="retro-btn bg-white py-1 text-xs font-bold"
+                                                            >
+                                                                {num}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <textarea
+                                                    value={(diaries[currentDay] || {}).me || ""}
+                                                    onChange={(e) => handleDiaryChange("me", e.target.value)}
+                                                    placeholder="오늘 하루 있었던 즐거운 감상을 솔직하게 기록해 봐요... 📒"
+                                                    className="w-full h-[150px] p-2 bg-transparent text-[#183684] font-bold border-2 border-dashed border-[#183684] rounded outline-none journal-paper resize-none"
+                                                />
+                                            )}
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* LIGHTBOX MODAL */}
+            {lightbox.show && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[999] p-4 font-sans">
+                    <div className="bg-white border-[4px] border-[#183684] rounded-2xl max-w-2xl w-full p-4 relative shadow-2xl">
+                        <button
+                            onClick={() => setLightbox({ show: false, imgUrl: "", day: null, index: null, caption: "" })}
+                            className="absolute top-2 right-2 bg-white border-2 border-[#183684] w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg z-10"
+                        >
+                            X
+                        </button>
+                        <div className="text-center">
+                            <img src={lightbox.imgUrl} className="max-h-[60vh] mx-auto object-contain rounded border-2 border-[#183684] mb-4" />
+                            
+                            <div className="mb-4">
+                                <label className="block text-left text-xs font-bold text-[#183684] mb-1">✍️ 사진 감성 한줄평 편집</label>
+                                <input
+                                    type="text"
+                                    value={lightbox.caption}
+                                    onChange={(e) => {
+                                        setLightbox(prev => ({ ...prev, caption: e.target.value }));
+                                        updatePhotoCaption(lightbox.day, lightbox.index, e.target.value);
+                                    }}
+                                    className="w-full p-2 border-2 border-[#183684] rounded-lg font-bold text-[#183684] text-center bg-amber-50/50"
+                                    placeholder="사진에 대한 예쁜 설명을 적어주세요."
+                                />
+                            </div>
+
+                            <div className="flex gap-2 justify-center">
+                                <button
+                                    onClick={() => handleDownloadPhoto(lightbox.imgUrl, `Miffy_Trip_Day${lightbox.day}_Photo${lightbox.index + 1}.jpg`)}
+                                    className="retro-btn bg-[#FFD100] text-[#183684] px-4 py-2 font-bold text-sm"
+                                >
+                                    📥 기기에 저장하기
+                                </button>
+                                <button
+                                    onClick={() => removePhoto(lightbox.day, lightbox.index)}
+                                    className="retro-btn bg-[#E51B23] text-white px-4 py-2 font-bold text-sm"
+                                >
+                                    🗑️ 이 사진 삭제
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ENTIRE PHOTO GALLERY MODAL */}
+            {albumOpen && (
+                <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-[900] p-4">
+                    <div className="bg-[#FDFBF7] border-[4px] border-[#183684] rounded-2xl max-w-4xl w-full p-6 relative shadow-2xl max-h-[85vh] overflow-y-auto">
+                        <div className="flex justify-between items-center border-b-4 border-[#183684] pb-3 mb-6">
+                            <h2 className="text-3xl font-black text-[#183684] flex items-center gap-2">📖 모녀여행 전체 추억 앨범 감상</h2>
+                            <button
+                                onClick={() => setAlbumOpen(false)}
+                                className="retro-btn bg-[#E51B23] text-white px-4 py-1 text-sm font-bold"
+                            >
+                                닫기 X
+                            </button>
+                        </div>
+
+                        <div className="space-y-6">
+                            {Array.from({ length: 9 }).map((_, idx) => {
+                                const d = idx + 1;
+                                const dPhotos = photos[d] || [];
+                                return (
+                                    <div key={d} className="border-2 border-dashed border-[#183684]/40 p-4 rounded-xl bg-white">
+                                        <h3 className="font-black text-xl text-[#E51B23] mb-3">📂 Day 0{d} 추억</h3>
+                                        {dPhotos.length === 0 ? (
+                                            <p className="text-sm text-gray-400 italic">아직 업로드된 사진이 없습니다.</p>
+                                        ) : (
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                                {dPhotos.map((photo, pIdx) => (
+                                                    <div
+                                                        key={photo.id}
+                                                        onClick={() => {
+                                                            setLightbox({ show: true, imgUrl: photo.url, day: d, index: pIdx, caption: photo.caption });
+                                                            setAlbumOpen(false);
+                                                        }}
+                                                        className="cursor-pointer border-2 border-[#183684] bg-white p-2 rounded shadow-sm hover:scale-[1.03] transition-transform text-center"
+                                                    >
+                                                        <img src={photo.url} className="w-full h-[120px] object-cover rounded border" />
+                                                        <p className="text-xs font-bold text-[#183684] mt-2 truncate">{photo.caption}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
