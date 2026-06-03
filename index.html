@@ -8,7 +8,7 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts for retro & handwritten feel -->
-    <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;700;900&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;700;900&family=Playfair+Display:ital,wght=0,600;1,400&display=swap" rel="stylesheet">
     
     <!-- React and Babel via CDN -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -578,6 +578,13 @@
             day: 1
         });
 
+        // Toggle state for ledger chart / filter
+        const [ledgerFilter, setLedgerFilter] = useState("오늘"); // "오늘" or "전체"
+
+        // Secret keypads
+        const [shuffledMomKeys, setShuffledMomKeys] = useState(["0", "1", "2", "3", "C"]);
+        const [shuffledMeKeys, setShuffledMeKeys] = useState(["0", "7", "8", "9", "C"]);
+
         const [coDiaryMom, setCoDiaryMom] = useState(() => {
             try {
                 const saved = localStorage.getItem('miffy_codiary_mom_v2');
@@ -611,6 +618,21 @@
         const [postitShape, setPostitShape] = useState("tape"); // tape, heart, cloud, clover
         const [draggedId, setDraggedId] = useState(null);
         const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+        // Shuffle keys every time password resets or day switches to ensure complete randomness
+        const shuffleArray = (array) => {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        };
+
+        useEffect(() => {
+            setShuffledMomKeys(shuffleArray(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "C"]));
+            setShuffledMeKeys(shuffleArray(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "C"]));
+        }, [isMomLocked, isMeLocked, selectedDay]);
 
         useEffect(() => {
             safeSaveItem('miffy_expenses', JSON.stringify(expenses));
@@ -985,6 +1007,16 @@
             return item.type === activeFilter;
         });
 
+        // 1-Day vs 9-Day chart summary computations
+        const getCategorySum = (dayIdx, isTotal = false) => {
+            const list = isTotal ? expenses : expenses.filter(exp => exp.day === dayIdx);
+            const categories = ["식비", "교통비", "쇼핑", "입장료", "기타"];
+            return categories.map(cat => {
+                const sum = list.filter(item => item.category === cat).reduce((s, item) => s + item.amountEur, 0);
+                return { category: cat, value: sum };
+            });
+        };
+
         const currentDayExpenseSum = expenses
             .filter(exp => exp.day === selectedDay)
             .reduce((sum, item) => sum + item.amountEur, 0);
@@ -1140,7 +1172,7 @@
                                 </div>
                             </div>
 
-                            {}
+                            {/* Info summary strip */}
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6">
                                 {/* Mom Care Tips */}
                                 <div className="lg:col-span-8 bg-[#EDF9EE] border-3 border-[#183684] rounded-2xl p-4 flex gap-4 text-sm shadow-[3px_3px_0_0_#183684]">
@@ -1210,7 +1242,7 @@
                                 </div>
                             </div>
 
-                            {}
+                            {/* Scrollable list of items */}
                             <div className="space-y-4">
                                 {filteredTimeline.length === 0 ? (
                                     <div className="text-center py-10 text-[#183684]/50 text-sm font-bold">
@@ -1296,7 +1328,7 @@
                                 </div>
                             </div>
 
-                            {}
+                            {/* Draggable Postits Layer */}
                             {currentPostits.map((post) => (
                                 <div
                                     key={post.id}
@@ -1426,7 +1458,6 @@
                                 </div>
                             </div>
 
-                            {}
                             {/* RETRO DAKKU STICKER CREATION WINDOW (Inspired by image_f5fdda.png Control Panel) */}
                             <div className="retro-window">
                                 <div className="bg-[#183684] text-white px-3 py-2 flex items-center justify-between">
@@ -1540,8 +1571,8 @@
                                             {momPassError && (
                                                 <p className="text-[10px] text-red-500 font-black">패스코드가 일치하지 않습니다. 다시 입력해주세요.</p>
                                             )}
-                                            <div className="grid grid-cols-5 gap-1.5 mt-2 max-w-[170px]">
-                                                {["0", "1", "2", "3", "C"].map((btn) => (
+                                            <div className="grid grid-cols-6 gap-1.5 mt-2 max-w-[210px]">
+                                                {shuffledMomKeys.map((btn) => (
                                                     <button
                                                         key={btn}
                                                         onClick={() => {
@@ -1569,7 +1600,6 @@
                                 )}
                             </div>
 
-                            {}
                             {/* MY DIARY (LOCK: 0789 - TOTAL SECRECY) */}
                             <div className="bg-[#EBF3FC] p-5 rounded-2xl border-3 border-[#183684] relative min-h-[250px] flex flex-col justify-between shadow-[3px_3px_0_0_#183684]">
                                 <div className="flex justify-between items-center border-b-2 border-dashed border-[#183684]/30 pb-2 mb-3">
@@ -1609,7 +1639,7 @@
                                                 <p className="text-[10px] text-red-500 font-black">패스코드가 일치하지 않습니다. 다시 입력해주세요.</p>
                                             )}
                                             <div className="grid grid-cols-6 gap-1.5 mt-2 max-w-[210px]">
-                                                {["0", "7", "8", "9", "C"].map((btn) => (
+                                                {shuffledMeKeys.map((btn) => (
                                                     <button
                                                         key={btn}
                                                         onClick={() => {
@@ -1647,7 +1677,20 @@
                         <div className="retro-window">
                             <div className="bg-[#183684] text-white px-3 py-2 flex items-center justify-between">
                                 <span className="font-black text-xs">💶 MIFFY_LEDGER.EXE</span>
-                                <span className="w-3.5 h-3.5 rounded-full bg-[#E32C22] border-2 border-white"></span>
+                                <div className="flex gap-1.5">
+                                    <button 
+                                        onClick={() => setLedgerFilter("오늘")} 
+                                        className={`px-2 py-0.5 rounded text-[10px] font-black border-2 transition-all ${ledgerFilter === "오늘" ? "bg-[#FFD100] text-[#183684] border-white" : "bg-[#183684] text-white border-transparent"}`}
+                                    >
+                                        오늘 지출
+                                    </button>
+                                    <button 
+                                        onClick={() => setLedgerFilter("전체")} 
+                                        className={`px-2 py-0.5 rounded text-[10px] font-black border-2 transition-all ${ledgerFilter === "전체" ? "bg-[#FFD100] text-[#183684] border-white" : "bg-[#183684] text-white border-transparent"}`}
+                                    >
+                                        전체 누적
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="p-5 bg-[#FFFDF9] space-y-4">
@@ -1706,6 +1749,33 @@
                                     </button>
                                 </form>
 
+                                {/* Category summary statistics with custom progress bars */}
+                                <div className="border-t-3 border-dashed border-[#183684]/30 pt-4 space-y-2.5">
+                                    <h4 className="font-black text-xs text-[#183684] uppercase">
+                                        📊 {ledgerFilter === "오늘" ? `Day 0${selectedDay} 카테고리별 지출 통계` : "여행 전체 누적 지출 통계"}
+                                    </h4>
+                                    <div className="space-y-1.5">
+                                        {getCategorySum(selectedDay, ledgerFilter === "전체").map((item) => {
+                                            const totalOfFilter = ledgerFilter === "오늘" ? currentDayExpenseSum : totalExpenseSumEur;
+                                            const pct = totalOfFilter > 0 ? (item.value / totalOfFilter) * 100 : 0;
+                                            return (
+                                                <div key={item.category} className="text-xs">
+                                                    <div className="flex justify-between font-bold text-[#183684] mb-0.5">
+                                                        <span>{item.category}</span>
+                                                        <span>€ {item.value.toFixed(2)} ({(Math.round(item.value * exchangeRate)).toLocaleString()}원)</span>
+                                                    </div>
+                                                    <div className="w-full bg-stone-100 rounded-full h-2.5 border border-[#183684]/30 overflow-hidden">
+                                                        <div 
+                                                            className="bg-[#E32C22] h-full rounded-full transition-all duration-300"
+                                                            style={{ width: `${pct}%`, backgroundColor: item.category === "식비" ? '#E32C22' : item.category === "교통비" ? '#009E49' : item.category === "쇼핑" ? '#FFD100' : '#183684' }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
                                 <div className="space-y-2 border-t-3 border-dashed border-[#183684]/30 pt-4 text-xs">
                                     <div className="flex justify-between items-center text-[#183684]">
                                         <span className="font-bold">오늘 ({selectedDay}일차) 합산:</span>
@@ -1729,7 +1799,6 @@
                             </div>
                         </div>
 
-                        {}
                         {/* PRE-CHECKLIST PREPARATION ITEMS */}
                         <div className="retro-window">
                             <div className="bg-[#183684] text-white px-3 py-2 flex items-center justify-between">
@@ -1781,7 +1850,6 @@
                     </p>
                 </footer>
 
-                {}
                 {/* RETRO PHOTO EDIT LIGHTBOX */}
                 {activeLightboxItem && (
                     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
@@ -1819,6 +1887,12 @@
                             </div>
 
                             <div className="flex gap-2 pt-2 border-t-2 border-dashed border-[#183684]/30">
+                                <button 
+                                    onClick={() => downloadPhoto(activeLightboxItem.photo)}
+                                    className="flex-1 bg-[#183684] hover:bg-[#E32C22] text-white border-2 border-white font-black py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-[2px_2px_0_0_#183684]"
+                                >
+                                    📥 기기에 사진 저장
+                                </button>
                                 <button 
                                     onClick={() => downloadPhoto(activeLightboxItem.photo)}
                                     className="flex-1 bg-[#183684] hover:bg-[#E32C22] text-white border-2 border-white font-black py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-[2px_2px_0_0_#183684]"
